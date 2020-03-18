@@ -1,0 +1,37 @@
+interface management0/0
+management-only
+nameif management
+ip address dhcp setroute
+no shutdown
+interface tengig 0/0
+nameif outside
+ip address dhcp setroute
+no shutdown
+interface tengig 0/1
+nameif inside
+ip address dhcp
+no shutdown
+
+crypto key generate rsa mod 1024
+
+ssh 0.0.0.0 0.0.0.0 inside
+ssh 0.0.0.0 0.0.0.0 management
+ssh timeout 60
+
+http server enable
+http 0.0.0.0 0.0.0.0 inside
+http 0.0.0.0 0.0.0.0 management
+
+enable password ${asa_password}
+username admin password ${asa_password} privilege 15
+
+aaa authentication ssh console LOCAL
+aaa authentication http console LOCAL
+
+route inside 10.0.0.0 255.0.0.0 ${default_gateway_inside}
+route inside 172.16.0.0 255.240.0.0 ${default_gateway_inside}
+route inside 192.168.0.0 255.255.0.0 ${default_gateway_inside}
+
+route management 10.0.0.0 255.0.0.0 ${default_gateway_management}
+route management 172.16.0.0 255.240.0.0 ${default_gateway_management}
+route management 192.168.0.0 255.255.0.0 ${default_gateway_management}
