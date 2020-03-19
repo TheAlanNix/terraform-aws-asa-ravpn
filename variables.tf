@@ -18,6 +18,15 @@ variable "internal_networks" {
 variable "region" {
   default = "us-east-1"
 }
+variable "throughput_level" {
+  type = map(string)
+
+  default = {
+    "c5.large" = "1G"
+    "c5.xlarge" = "2G"
+    "c5.2xlarge" = "10G"
+  }
+}
 variable "transit_gateway_id" {}
 variable "vpc_name" {
   default = "ASAv Remote Access VPN"

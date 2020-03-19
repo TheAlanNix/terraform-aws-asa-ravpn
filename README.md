@@ -29,6 +29,7 @@ Once your environment is set up, you'll want to edit the **[terraform.tfvars](te
 - instance_size: The desired instance size for the ASAv instances.
   - Default: "c5.2xlarge"
   - Type: String
+  - Values: c5.large / c5.xlarge / c5.2xlarge
 - instances_per_az:  The number of ASAv instances per availability zone.
   - Default: 1
   - Type: Integer
