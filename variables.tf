@@ -1,11 +1,11 @@
 data "aws_availability_zones" "available" {}
-variable "region" {
-  default = "us-east-1"
+variable "availability_zone_count" {
+  default = 1
 }
 variable "instance_size" {
   default = "c5.2xlarge"
 }
-variable "availability_zone_count" {
+variable "instances_per_az" {
   default = 1
 }
 variable "internal_networks" {
@@ -15,8 +15,8 @@ variable "internal_networks" {
     "192.168.0.0/16"
   ]
 }
-variable "instances_per_az" {
-  default = 1
+variable "region" {
+  default = "us-east-1"
 }
 variable "transit_gateway_id" {}
 variable "vpc_name" {
