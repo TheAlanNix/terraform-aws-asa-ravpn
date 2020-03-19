@@ -43,7 +43,6 @@ resource "aws_subnet" "outside_subnets" {
   }
 }
 resource "aws_subnet" "inside_subnets" {
-
   count = var.availability_zone_count
 
   vpc_id     = aws_vpc.main.id
@@ -54,7 +53,6 @@ resource "aws_subnet" "inside_subnets" {
   }
 }
 resource "aws_subnet" "management_subnets" {
-
   count = var.availability_zone_count
 
   vpc_id     = aws_vpc.main.id

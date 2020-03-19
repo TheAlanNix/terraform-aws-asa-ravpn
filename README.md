@@ -1,6 +1,6 @@
 # ASAv: Remote Access VPN in AWS
 
-This is a Terraform template meant to quickly configure multiple instances, across multiple availability zones, in AWS.
+This is a Terraform template meant to quickly configure multiple Cisco ASAv instances, across multiple availability zones, in AWS.
 
 ## Requirements
 
