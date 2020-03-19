@@ -26,7 +26,7 @@ Once your environment is set up, you'll want to edit the **[terraform.tfvars](te
 - availability_zone_count:  The number of availability zones in which to deploy.
   - Default: 1
   - Type: Integer
-- instance_size: The desired instance size for the ASAv instances.
+- instance_size:  The desired instance size for the ASAv instances.
   - Default: "c5.2xlarge"
   - Type: String
   - Values: c5.large / c5.xlarge / c5.2xlarge
@@ -36,10 +36,13 @@ Once your environment is set up, you'll want to edit the **[terraform.tfvars](te
 - internal_networks:  The internal networks that should be accessible by RAVPN clients.  This is used to set up routing and AWS Security Groups.
   - Default: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
   - Type: List of CIDR networks
-- region: The AWS Region that you'd like to deploy to.
+- region:  The AWS Region that you'd like to deploy to.
   - Default: "us-east-1"
   - Type: String
-- transit_gateway_id:  The ID of the transit gateway to attach to.
+- smart_account_token:  (Optional) The Smart License Registration Token that you would like to use.
+  - Default: ""
+  - Type: String
+- transit_gateway_id:  (Optional) The ID of the transit gateway to attach to.
   - Default: ""
   - Type: String
 - vpc_name:  The desired name of the VPC that will be created.
@@ -48,4 +51,3 @@ Once your environment is set up, you'll want to edit the **[terraform.tfvars](te
 - vpc_subnet:  The CIDR network that should be used to assign subnets in AWS.
   - Default: ""
   - Type: String
-`

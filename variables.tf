@@ -18,6 +18,9 @@ variable "internal_networks" {
 variable "region" {
   default = "us-east-1"
 }
+variable "smart_account_token" {
+  default = ""
+}
 variable "throughput_level" {
   type = map(string)
 
