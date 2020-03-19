@@ -48,6 +48,6 @@ Once your environment is set up, you'll want to edit the **[terraform.tfvars](te
 - vpc_name:  The desired name of the VPC that will be created.
   - Default: "ASAv Remote Access VPN"
   - Type: String
-- vpc_subnet:  The CIDR network that should be used to assign subnets in AWS.
+- vpc_subnet:  **[REQUIRED]** The CIDR network that should be used to assign subnets in AWS.
   - Default: ""
   - Type: String

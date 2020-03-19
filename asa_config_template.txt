@@ -38,4 +38,6 @@ route inside 192.168.0.0 255.255.0.0 ${default_gateway_inside}
 license smart
 feature tier standard
 throughput level ${throughput_level}
-%{ if var.smart_account_token != "" }license smart register idtoken ${var.smart_account_token}{ endif }
+%{ if smart_account_token != "" }
+license smart register idtoken ${smart_account_token}
+%{ endif }

@@ -400,6 +400,7 @@ data "template_file" "asa_config" {
   vars = {
     asa_password           = random_password.password.result
     default_gateway_inside = cidrhost(aws_subnet.inside_subnets[floor(count.index / var.instances_per_az)].cidr_block, 1)
+    smart_account_token    = var.smart_account_token
     throughput_level       = lookup(var.throughput_level, var.instance_size, "1G")
   }
 }
