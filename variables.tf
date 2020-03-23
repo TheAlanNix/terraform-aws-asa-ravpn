@@ -15,6 +15,15 @@ variable "internal_networks" {
     "192.168.0.0/16"
   ]
 }
+variable "ip_pool_size" {
+  type = map(string)
+
+  default = {
+    "c5.large"   = 8
+    "c5.xlarge"  = 10
+    "c5.2xlarge" = 14
+  }
+}
 variable "region" {
   default = "us-east-1"
 }
@@ -25,13 +34,17 @@ variable "throughput_level" {
   type = map(string)
 
   default = {
-    "c5.large" = "1G"
-    "c5.xlarge" = "2G"
+    "c5.large"   = "1G"
+    "c5.xlarge"  = "2G"
     "c5.2xlarge" = "10G"
   }
 }
-variable "transit_gateway_id" {}
 variable "vpc_name" {
   default = "ASAv Remote Access VPN"
 }
-variable "vpc_subnet" {}
+variable "vpc_subnet" {
+  default = "10.150.0.0/24"
+}
+variable "vpn_pool_supernet" {
+  default = "10.151.0.0/16"
+}

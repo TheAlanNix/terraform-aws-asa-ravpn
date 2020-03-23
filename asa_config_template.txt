@@ -1,29 +1,33 @@
 interface management0/0
-management-only
-nameif management
-ip address dhcp setroute
-no shutdown
+    management-only
+    nameif management
+    ip address dhcp setroute
+    no shutdown
 interface tengig 0/0
-nameif outside
-ip address dhcp setroute
-no shutdown
+    nameif outside
+    ip address dhcp setroute
+    no shutdown
 interface tengig 0/1
-nameif inside
-ip address dhcp
-no shutdown
+    nameif inside
+    ip address dhcp
+    no shutdown
 
 crypto key generate rsa mod 1024
 
 dns domain-lookup outside
 dns name-server 208.67.220.220 208.67.222.222
 
+ssh timeout 60
 ssh 0.0.0.0 0.0.0.0 inside
 ssh 0.0.0.0 0.0.0.0 management
-ssh timeout 60
+! AWS Security Groups will filter
+ssh 0.0.0.0 0.0.0.0 outside
 
 http server enable
 http 0.0.0.0 0.0.0.0 inside
 http 0.0.0.0 0.0.0.0 management
+! AWS Security Groups will filter
+http 0.0.0.0 0.0.0.0 outside
 
 enable password ${asa_password}
 username admin password ${asa_password} privilege 15
@@ -36,8 +40,13 @@ route inside 172.16.0.0 255.240.0.0 ${default_gateway_inside}
 route inside 192.168.0.0 255.255.0.0 ${default_gateway_inside}
 
 license smart
-feature tier standard
-throughput level ${throughput_level}
+    feature tier standard
+    throughput level ${throughput_level}
+
 %{ if smart_account_token != "" }
 license smart register idtoken ${smart_account_token}
+%{ endif }
+
+%{ if ip_pool_start != "" }
+ip local pool VPN_Pool ${ip_pool_start} mask ${ip_pool_mask}
 %{ endif }

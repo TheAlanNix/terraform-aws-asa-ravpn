@@ -13,7 +13,11 @@ First, you'll need to have an AWS account, and you'll want to set up configurati
 
 https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
 
-This script will leverage an AWS Transit Gateway to tunnel traffic to/from the created AWS VPC to other networks.  You can leverage an existing AWS Transit Gateway by adding the Transit Gateway's ID as a variable, otherwise a new Transit Gateway will be created for you.  For more information on Transit Gateways, please see Amazon's documentation here:
+This script will leverage an AWS Transit Gateway to tunnel traffic to/from the created AWS VPC to other networks.  You can leverage an existing AWS Transit Gateway by running the following command:
+
+`terraform import aws_ec2_transit_gateway.transit_gateway <Transit_Gateway_ID>`
+
+Otherwise, a new Transit Gateway will be created for you.  For more information on Transit Gateways, please see Amazon's documentation here:
 
 https://docs.aws.amazon.com/vpc/latest/tgw/tgw-transit-gateways.html
 
@@ -49,5 +53,8 @@ Once your environment is set up, you'll want to edit the **[terraform.tfvars](te
   - Default: "ASAv Remote Access VPN"
   - Type: String
 - vpc_subnet:  **[REQUIRED]** The CIDR network that should be used to assign subnets in AWS.
-  - Default: ""
+  - Default: "10.150.0.0/24"
+  - Type: String
+- vpn_pool_supernet:  **[REQUIRED]** The CIDR network that should be used to assign VPN IP pools for RAVPN users.
+  - Default: "10.151.0.0/16"
   - Type: String

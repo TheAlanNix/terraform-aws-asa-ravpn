@@ -13,6 +13,10 @@ resource "aws_vpc" "main" {
   }
 }
 
+locals {
+  vpc_network_bits  = tonumber(split("/", var.vpc_subnet)[1])
+}
+
 /*
   Create Internet Gateway
  */
@@ -27,11 +31,7 @@ resource "aws_internet_gateway" "internet_gateway" {
 /*
   Create Transit Gateway
  */
-resource "aws_ec2_transit_gateway" "transit_gateway" {
-  count = (var.transit_gateway_id == "" ? 1 : 0)
-
-  description = "ASAv_RAVPN_TG"
-}
+resource "aws_ec2_transit_gateway" "transit_gateway" {}
 
 /*
   Create Subnets
@@ -40,7 +40,7 @@ resource "aws_subnet" "outside_subnets" {
   count = var.availability_zone_count
 
   vpc_id            = aws_vpc.main.id
-  cidr_block        = cidrsubnet(var.vpc_subnet, 8, (var.availability_zone_count + 1) * count.index)
+  cidr_block        = cidrsubnet(var.vpc_subnet, 28 - local.vpc_network_bits, (3 * count.index))
   availability_zone = data.aws_availability_zones.available.names[count.index]
 
   tags = {
@@ -51,7 +51,7 @@ resource "aws_subnet" "inside_subnets" {
   count = var.availability_zone_count
 
   vpc_id            = aws_vpc.main.id
-  cidr_block        = cidrsubnet(var.vpc_subnet, 8, ((var.availability_zone_count + 1) * count.index) + 1)
+  cidr_block        = cidrsubnet(var.vpc_subnet, 28 - local.vpc_network_bits, (3 * count.index) + 1)
   availability_zone = data.aws_availability_zones.available.names[count.index]
 
   tags = {
@@ -62,7 +62,7 @@ resource "aws_subnet" "management_subnets" {
   count = var.availability_zone_count
 
   vpc_id            = aws_vpc.main.id
-  cidr_block        = cidrsubnet(var.vpc_subnet, 8, ((var.availability_zone_count + 1) * count.index) + 2)
+  cidr_block        = cidrsubnet(var.vpc_subnet, 28 - local.vpc_network_bits, (3 * count.index) + 2)
   availability_zone = data.aws_availability_zones.available.names[count.index]
 
   tags = {
@@ -160,7 +160,7 @@ resource "aws_security_group" "allow_internal_networks" {
 }
 
 /*
-  Create "Allow SSH" Security Group
+  Create "Allow SSH/HTTPS" Security Group
  */
 resource "aws_default_security_group" "default" {
   vpc_id = aws_vpc.main.id
@@ -179,6 +179,13 @@ resource "aws_default_security_group" "default" {
     cidr_blocks = var.internal_networks
   }
 
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = var.internal_networks
+  }
+
   egress {
     from_port   = "0"
     to_port     = "0"
@@ -187,7 +194,7 @@ resource "aws_default_security_group" "default" {
   }
 
   tags = {
-    "Name" = "Allow SSH"
+    "Name" = "Allow SSH/HTTPS"
   }
 }
 
@@ -276,14 +283,19 @@ resource "aws_nat_gateway" "management_nat_gateway" {
 /*
   Create Transit Gateway Attachment
  */
-resource "aws_ec2_transit_gateway_vpc_attachment" "example" {
+resource "aws_ec2_transit_gateway_vpc_attachment" "transit_gateway_attachment" {
   subnet_ids         = [for subnet in aws_subnet.inside_subnets: subnet.id]
-  transit_gateway_id = (var.transit_gateway_id != "" ?  var.transit_gateway_id : aws_ec2_transit_gateway.transit_gateway[0].id)
+  transit_gateway_id = aws_ec2_transit_gateway.transit_gateway.id
   vpc_id             = aws_vpc.main.id
 
   tags = {
     "Name" = "RAVPN_VPC_TO_TRANSIT_GATEWAY"
   }
+}
+resource "aws_ec2_transit_gateway_route" "transit_gateway_route" {
+  destination_cidr_block         = var.vpn_pool_supernet
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.transit_gateway_attachment.id
+  transit_gateway_route_table_id = aws_ec2_transit_gateway.transit_gateway.association_default_route_table_id
 }
 
 /*
@@ -297,9 +309,9 @@ resource "aws_route_table" "route_table_outside" {
   }
 }
 resource "aws_route" "default_route" {
-  route_table_id          = aws_route_table.route_table_outside.id
-  destination_cidr_block  = "0.0.0.0/0"
-  gateway_id              = aws_internet_gateway.internet_gateway.id
+  route_table_id         = aws_route_table.route_table_outside.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.internet_gateway.id
 }
 resource "aws_route_table_association" "route_table_association_outside" {
   count = length(aws_subnet.outside_subnets)
@@ -318,12 +330,19 @@ resource "aws_route_table" "route_table_inside" {
     "Name" = "${var.vpc_name} Inside Route Table"
   }
 }
+resource "aws_route" "inside_vpn_pool_routes" {
+  count = var.availability_zone_count * var.instances_per_az
+
+  route_table_id         = aws_route_table.route_table_inside.id
+  destination_cidr_block = cidrsubnet(var.vpn_pool_supernet, (local.vpc_network_bits - var.ip_pool_size[var.instance_size]), count.index)
+  network_interface_id   = aws_network_interface.inside_interfaces[count.index].id
+}
 resource "aws_route" "inside_internal_routes" {
   count = length(var.internal_networks)
 
-  route_table_id          = aws_route_table.route_table_inside.id
-  destination_cidr_block  = var.internal_networks[count.index]
-  transit_gateway_id      = (var.transit_gateway_id != "" ?  var.transit_gateway_id : aws_ec2_transit_gateway.transit_gateway[0].id)
+  route_table_id         = aws_route_table.route_table_inside.id
+  destination_cidr_block = var.internal_networks[count.index]
+  transit_gateway_id     = aws_ec2_transit_gateway.transit_gateway.id
 }
 resource "aws_route_table_association" "route_table_association_inside" {
   count = length(aws_subnet.inside_subnets)
@@ -351,9 +370,9 @@ resource "aws_route_table" "management_route_tables" {
 resource "aws_route" "management_internal_routes" {
   count = var.availability_zone_count * length(var.internal_networks)
 
-  route_table_id          = aws_route_table.management_route_tables[floor(count.index / length(var.internal_networks))].id
-  destination_cidr_block  = var.internal_networks[count.index % length(var.internal_networks)]
-  transit_gateway_id      = (var.transit_gateway_id != "" ?  var.transit_gateway_id : aws_ec2_transit_gateway.transit_gateway[0].id)
+  route_table_id         = aws_route_table.management_route_tables[floor(count.index / length(var.internal_networks))].id
+  destination_cidr_block = var.internal_networks[count.index % length(var.internal_networks)]
+  transit_gateway_id     = aws_ec2_transit_gateway.transit_gateway.id
 }
 resource "aws_route_table_association" "route_rable_association_management" {
   count = length(aws_subnet.management_subnets)
@@ -400,6 +419,8 @@ data "template_file" "asa_config" {
   vars = {
     asa_password           = random_password.password.result
     default_gateway_inside = cidrhost(aws_subnet.inside_subnets[floor(count.index / var.instances_per_az)].cidr_block, 1)
+    ip_pool_start          = cidrhost(cidrsubnet(var.vpn_pool_supernet, (local.vpc_network_bits - var.ip_pool_size[var.instance_size]), count.index), 1)
+    ip_pool_mask           = cidrnetmask(cidrsubnet(var.vpn_pool_supernet, (local.vpc_network_bits - var.ip_pool_size[var.instance_size]), count.index))
     smart_account_token    = var.smart_account_token
     throughput_level       = lookup(var.throughput_level, var.instance_size, "1G")
   }
