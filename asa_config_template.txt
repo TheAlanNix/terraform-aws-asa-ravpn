@@ -48,5 +48,5 @@ license smart register idtoken ${smart_account_token}
 %{ endif }
 
 %{ if ip_pool_start != "" }
-ip local pool VPN_Pool ${ip_pool_start} mask ${ip_pool_mask}
+ip local pool VPN_Pool ${ip_pool_start}-${ip_pool_end} mask ${ip_pool_mask}
 %{ endif }

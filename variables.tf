@@ -15,13 +15,22 @@ variable "internal_networks" {
     "192.168.0.0/16"
   ]
 }
-variable "ip_pool_size" {
+variable "ip_pool_size_bits" {
   type = map(string)
 
   default = {
     "c5.large"   = 8
     "c5.xlarge"  = 10
     "c5.2xlarge" = 14
+  }
+}
+variable "ip_pool_size_count" {
+  type = map(string)
+
+  default = {
+    "c5.large"   = 254
+    "c5.xlarge"  = 1022
+    "c5.2xlarge" = 16382
   }
 }
 variable "region" {

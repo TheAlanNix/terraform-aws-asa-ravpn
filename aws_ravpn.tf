@@ -15,6 +15,7 @@ resource "aws_vpc" "main" {
 
 locals {
   vpc_network_bits  = tonumber(split("/", var.vpc_subnet)[1])
+  vpn_network_bits  = tonumber(split("/", var.vpn_pool_supernet)[1])
 }
 
 /*
@@ -334,7 +335,7 @@ resource "aws_route" "inside_vpn_pool_routes" {
   count = var.availability_zone_count * var.instances_per_az
 
   route_table_id         = aws_route_table.route_table_inside.id
-  destination_cidr_block = cidrsubnet(var.vpn_pool_supernet, (local.vpc_network_bits - var.ip_pool_size[var.instance_size]), count.index)
+  destination_cidr_block = cidrsubnet(var.vpn_pool_supernet, (local.vpn_network_bits - var.ip_pool_size_bits[var.instance_size]), count.index)
   network_interface_id   = aws_network_interface.inside_interfaces[count.index].id
 }
 resource "aws_route" "inside_internal_routes" {
@@ -399,7 +400,7 @@ data "aws_ami" "cisco_asa_lookup" {
   Generate a random password
  */
 resource "random_password" "password" {
-  length  = 20
+  length  = 40
   special = true
 
   provisioner "local-exec" {
@@ -419,13 +420,16 @@ data "template_file" "asa_config" {
   vars = {
     asa_password           = random_password.password.result
     default_gateway_inside = cidrhost(aws_subnet.inside_subnets[floor(count.index / var.instances_per_az)].cidr_block, 1)
-    ip_pool_start          = cidrhost(cidrsubnet(var.vpn_pool_supernet, (local.vpc_network_bits - var.ip_pool_size[var.instance_size]), count.index), 1)
-    ip_pool_mask           = cidrnetmask(cidrsubnet(var.vpn_pool_supernet, (local.vpc_network_bits - var.ip_pool_size[var.instance_size]), count.index))
+    ip_pool_start          = cidrhost(cidrsubnet(var.vpn_pool_supernet, (local.vpn_network_bits - var.ip_pool_size_bits[var.instance_size]), count.index), 1)
+    ip_pool_end            = cidrhost(cidrsubnet(var.vpn_pool_supernet,
+                                                  (local.vpn_network_bits - var.ip_pool_size_bits[var.instance_size]), count.index),
+                                                  var.ip_pool_size_count[var.instance_size])
+    ip_pool_mask           = cidrnetmask(cidrsubnet(var.vpn_pool_supernet, (local.vpn_network_bits - var.ip_pool_size_bits[var.instance_size]), count.index))
     smart_account_token    = var.smart_account_token
     throughput_level       = lookup(var.throughput_level, var.instance_size, "1G")
   }
 }
- 
+
 /*
   Create ASAv Instance
  */
