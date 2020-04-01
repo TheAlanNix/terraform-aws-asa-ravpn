@@ -90,6 +90,9 @@ Once your environment is set up, you'll want to edit the **[terraform.tfvars](te
 - vpc_subnet:  **[REQUIRED]** The CIDR network that should be used to assign subnets in AWS.  This will be used for interfaces on the ASAv instances.
   - Default: "10.150.0.0/24"
   - Type: String
+- vpn_pool_dns:  (Optional) A comma-separated list of the default DNS servers to be used by RAVPN clients.
+  - Default: ""
+  - Type: String
 - vpn_pool_supernet:  **[REQUIRED]** The CIDR network that should be used to assign VPN IP pools for RAVPN users.
   - Default: "10.151.0.0/16"
   - Type: String

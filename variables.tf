@@ -54,6 +54,9 @@ variable "vpc_name" {
 variable "vpc_subnet" {
   default = "10.150.0.0/24"
 }
+variable "vpn_pool_dns" {
+  default = ""
+}
 variable "vpn_pool_supernet" {
   default = "10.151.0.0/16"
 }

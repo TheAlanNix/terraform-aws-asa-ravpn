@@ -4,7 +4,8 @@ region = "us-east-1"
 // VPC Configuration
 vpc_subnet = "10.150.0.0/24"
 
-// VPN Pool Configuration
+// VPN Configuration
+vpn_pool_dns = ""
 vpn_pool_supernet = "10.151.0.0/16"
 
 // Scalability

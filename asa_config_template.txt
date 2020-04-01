@@ -12,6 +12,8 @@ interface tengig 0/1
     ip address dhcp
     no shutdown
 
+hostname ravpn-${asa_count}
+
 crypto key generate rsa mod 1024
 
 dns domain-lookup outside
@@ -39,6 +41,10 @@ route inside 10.0.0.0 255.0.0.0 ${default_gateway_inside}
 route inside 172.16.0.0 255.240.0.0 ${default_gateway_inside}
 route inside 192.168.0.0 255.255.0.0 ${default_gateway_inside}
 
+access-list Split_Tunnel_List standard permit 10.0.0.0 255.0.0.0 
+access-list Split_Tunnel_List standard permit 172.16.0.0 255.240.0.0 
+access-list Split_Tunnel_List standard permit 192.168.0.0 255.255.0.0 
+
 license smart
     feature tier standard
     throughput level ${throughput_level}
@@ -50,3 +56,20 @@ license smart register idtoken ${smart_account_token}
 %{ if ip_pool_start != "" }
 ip local pool VPN_Pool ${ip_pool_start}-${ip_pool_end} mask ${ip_pool_mask}
 %{ endif }
+
+group-policy DfltGrpPolicy attributes
+ %{ if vpn_dns_servers != "" }
+ dns-server value ${vpn_dns_servers}
+ %{ endif }
+ vpn-tunnel-protocol ssl-client ssl-clientless
+ split-tunnel-policy tunnelspecified
+ split-tunnel-network-list value Split_Tunnel_List
+ split-tunnel-all-dns enable
+ address-pools value VPN_Pool
+ webvpn
+  anyconnect ssl dtls enable
+  anyconnect mtu 1200
+  anyconnect dpd-interval client 20
+  anyconnect dpd-interval gateway 60
+  anyconnect ssl compression deflate
+  anyconnect ask enable default anyconnect

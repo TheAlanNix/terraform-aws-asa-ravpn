@@ -418,6 +418,7 @@ data "template_file" "asa_config" {
   template   = "${file("asa_config_template.txt")}"
 
   vars = {
+    asa_count              = count.index + 1
     asa_password           = random_password.password.result
     default_gateway_inside = cidrhost(aws_subnet.inside_subnets[floor(count.index / var.instances_per_az)].cidr_block, 1)
     ip_pool_start          = cidrhost(cidrsubnet(var.vpn_pool_supernet, (local.vpn_network_bits - var.ip_pool_size_bits[var.instance_size]), count.index), 1)
@@ -427,6 +428,7 @@ data "template_file" "asa_config" {
     ip_pool_mask           = cidrnetmask(cidrsubnet(var.vpn_pool_supernet, (local.vpn_network_bits - var.ip_pool_size_bits[var.instance_size]), count.index))
     smart_account_token    = var.smart_account_token
     throughput_level       = lookup(var.throughput_level, var.instance_size, "1G")
+    vpn_dns_servers        = replace(var.vpn_pool_dns, "/(,\\s*)/", " ")
   }
 }
 
@@ -435,6 +437,8 @@ data "template_file" "asa_config" {
  */
 resource "aws_instance" "asav" {
   count = var.availability_zone_count * var.instances_per_az
+
+  depends_on = [data.template_file.asa_config, random_password.password]
 
   ami           = data.aws_ami.cisco_asa_lookup.id
   instance_type = var.instance_size
