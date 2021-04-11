@@ -1,5 +1,6 @@
-provider "aws" {
-  region     = var.region
+locals {
+  vpc_network_bits = tonumber(split("/", var.vpc_subnet)[1])
+  vpn_network_bits = tonumber(split("/", var.vpn_pool_supernet)[1])
 }
 
 /*
@@ -11,11 +12,6 @@ resource "aws_vpc" "main" {
   tags = {
     "Name" = var.vpc_name
   }
-}
-
-locals {
-  vpc_network_bits  = tonumber(split("/", var.vpc_subnet)[1])
-  vpn_network_bits  = tonumber(split("/", var.vpn_pool_supernet)[1])
 }
 
 /*
@@ -285,7 +281,7 @@ resource "aws_nat_gateway" "management_nat_gateway" {
   Create Transit Gateway Attachment
  */
 resource "aws_ec2_transit_gateway_vpc_attachment" "transit_gateway_attachment" {
-  subnet_ids         = [for subnet in aws_subnet.inside_subnets: subnet.id]
+  subnet_ids         = [for subnet in aws_subnet.inside_subnets : subnet.id]
   transit_gateway_id = aws_ec2_transit_gateway.transit_gateway.id
   vpc_id             = aws_vpc.main.id
 
@@ -415,20 +411,20 @@ data "template_file" "asa_config" {
   count = var.availability_zone_count * var.instances_per_az
 
   depends_on = [random_password.password, aws_subnet.inside_subnets]
-  template   = "${file("asa_config_template.txt")}"
+  template   = file("asa_config_template.txt")
 
   vars = {
     asa_count              = count.index + 1
     asa_password           = random_password.password.result
     default_gateway_inside = cidrhost(aws_subnet.inside_subnets[floor(count.index / var.instances_per_az)].cidr_block, 1)
     ip_pool_start          = cidrhost(cidrsubnet(var.vpn_pool_supernet, (local.vpn_network_bits - var.ip_pool_size_bits[var.instance_size]), count.index), 1)
-    ip_pool_end            = cidrhost(cidrsubnet(var.vpn_pool_supernet,
-                                                  (local.vpn_network_bits - var.ip_pool_size_bits[var.instance_size]), count.index),
-                                                  var.ip_pool_size_count[var.instance_size])
-    ip_pool_mask           = cidrnetmask(cidrsubnet(var.vpn_pool_supernet, (local.vpn_network_bits - var.ip_pool_size_bits[var.instance_size]), count.index))
-    smart_account_token    = var.smart_account_token
-    throughput_level       = lookup(var.throughput_level, var.instance_size, "1G")
-    vpn_dns_servers        = replace(var.vpn_pool_dns, "/(,\\s*)/", " ")
+    ip_pool_end = cidrhost(cidrsubnet(var.vpn_pool_supernet,
+      (local.vpn_network_bits - var.ip_pool_size_bits[var.instance_size]), count.index),
+    var.ip_pool_size_count[var.instance_size])
+    ip_pool_mask        = cidrnetmask(cidrsubnet(var.vpn_pool_supernet, (local.vpn_network_bits - var.ip_pool_size_bits[var.instance_size]), count.index))
+    smart_account_token = var.smart_account_token
+    throughput_level    = lookup(var.throughput_level, var.instance_size, "1G")
+    vpn_dns_servers     = replace(var.vpn_pool_dns, "/(,\\s*)/", " ")
   }
 }
 
@@ -442,34 +438,24 @@ resource "aws_instance" "asav" {
 
   ami           = data.aws_ami.cisco_asa_lookup.id
   instance_type = var.instance_size
-  tags          = {
+  tags = {
     Name = "Cisco ASAv RAVPN ${count.index + 1}"
   }
 
   user_data = data.template_file.asa_config[count.index].rendered
 
   network_interface {
-    device_index = 0
+    device_index         = 0
     network_interface_id = aws_network_interface.management_interfaces[count.index].id
   }
 
   network_interface {
-    device_index = 1
+    device_index         = 1
     network_interface_id = aws_network_interface.outside_interfaces[count.index].id
   }
 
   network_interface {
-    device_index = 2
+    device_index         = 2
     network_interface_id = aws_network_interface.inside_interfaces[count.index].id
   }
-}
-
-output "inside_ips" {
-  value = aws_network_interface.inside_interfaces.*.private_ip
-}
-output "management_ips" {
-  value = aws_network_interface.management_interfaces.*.private_ip
-}
-output "outside_ips" {
-  value = aws_eip.outside_eips.*.public_ip
 }

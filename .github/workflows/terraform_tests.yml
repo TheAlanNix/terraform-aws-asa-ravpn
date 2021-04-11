@@ -1,0 +1,34 @@
+name: Terraform Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  schedule:
+    - cron: "0 7 * * *"
+
+jobs:
+  Terraform:
+    name: Terraform Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+
+      - name: Terraform Setup
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: ~0.14.0
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
+        env:
+          AWS_REGION: "us-east-1"
